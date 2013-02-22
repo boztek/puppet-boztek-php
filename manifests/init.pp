@@ -1,44 +1,44 @@
 class php($sapi = "cgi") {
+	notice("Installing PHP")
 	require homebrew
 
 	exec { 'brew tap josegonzalez/php':
 		creates => "${homebrew::config::tapsdir}/josegonzalez-php", 
-		before => Exec['php53-cgi'],
+		before => Package['php53'],
 	}
 	exec { 'brew tap homebrew/dupes':
 		creates => "${homebrew::config::tapsdir}/homebrew-dupes",
 		before => Package['zlib'],
 	}
+
 	package { 'zlib': }
 
-	exec { 'php53-cgi':
-		require => Package['zlib'],
-		command => 'brew install php53 --with-cgi --with-gmp',
-		creates => "${homebrew::config::installdir}/bin/php-cgi",
+	exec { 'php53-cgi-prepare':
+		command => 'brew uninstall php53 --with-cgi',
+		onlyif  => 'test -d /opt/boxen/homebrew/Cellar/php',
 	}
 
-	exec { 'php53-cgi-bin':
-		require => Exec['php53-cgi'], 
-		command => "cp ${homebrew::config::installdir}/bin/php-cgi ${boxen::config::home}/bin",
-		creates => "${boxen::config::home}/bin/php-cgi",
-	}
-
-	exec { 'brew uninstall php53': }
-
-	package { 'php53-fpm':
-		name => 'php53',
+	package { 'php53 --with-cgi':
 		require => Package['zlib'],
 		install_options => [
-			'--with-fpm',
 			'--with-gmp',
-			'--with-tidy',
 		],
 	}
 
-	include php::pear
+	exec { 'php53-cgi-bin':
+		command => "cp ${homebrew::config::installdir}/Cellar/php53/5.3.21/bin/php-cgi ${boxen::config::home}/bin",
+		creates => "${boxen::config::home}/bin/php-cgi",
+		onlyif  => 'test -d ${homebrew::config::installdir}/Cellar/php53/5.3.21/bin/php-cgi',
+	}
 
-	Exec['php53-cgi'] -> Exec['php53-cgi-bin'] -> Exec['brew uninstall php53'] -> Package['php53-fpm']
-}
+	exec { 'php53-cgi-cleanup':
+		command => 'brew uninstall php53 --with-cgi',
+	}
 
-class php::pear {
+	package { 'php53':
+		require => Package['zlib'],
+		install_options => ['--with-fpm', '--with-gmp'],
+	}
+
+	Exec['php53-cgi-prepare'] -> Package['php53 --with-cgi'] -> Exec['php53-cgi-bin'] -> Exec['php53-cgi-cleanup'] -> Package['php53']
 }
