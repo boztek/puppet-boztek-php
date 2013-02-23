@@ -16,11 +16,13 @@ class php($sapi = "cgi") {
 	exec { 'php53-cgi-prepare':
 		command => 'brew uninstall php53 --with-cgi',
 		onlyif  => 'test -d /opt/boxen/homebrew/Cellar/php',
+		before  => Package['php53'],
 	}
 
-	package { 'php53 --with-cgi':
+	package { 'php53':
 		require => Package['zlib'],
 		install_options => [
+			'--with-cgi',
 			'--with-gmp',
 		],
 	}
@@ -35,10 +37,10 @@ class php($sapi = "cgi") {
 		command => 'brew uninstall php53 --with-cgi',
 	}
 
-	package { 'php53':
+	package { 'php53 --with-fpm':
 		require => Package['zlib'],
-		install_options => ['--with-fpm', '--with-gmp'],
+		install_options => ['--with-gmp'],
 	}
 
-	Exec['php53-cgi-prepare'] -> Package['php53 --with-cgi'] -> Exec['php53-cgi-bin'] -> Exec['php53-cgi-cleanup'] -> Package['php53']
+	Package['php53'] -> Exec['php53-cgi-bin'] -> Exec['php53-cgi-cleanup'] -> Package['php53']
 }
