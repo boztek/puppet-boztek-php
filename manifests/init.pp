@@ -35,6 +35,7 @@ class php($sapi = "cgi") {
 
 	exec { 'php53-cgi-cleanup':
 		command => 'brew uninstall php53 --with-cgi',
+		onlyif  => 'test -d ${homebrew::config::installdir}/Cellar/php53/5.3.21/bin/php-cgi',
 	}
 
 	package { 'php53 --with-fpm':
